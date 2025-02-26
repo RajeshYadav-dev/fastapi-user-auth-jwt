@@ -63,16 +63,16 @@ async def update_a_student(
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
   
   
-@student_router.delete("/{student_id}",status_code=status.HTTP_200_OK)
+@student_router.delete("/{student_id}")
 async def delete_a_student(
   student_uid:str,
   session:AsyncSession=Depends(get_async_session),
-  
-  ):
+  user_detail=Depends(access_token_bearer)
+  )->dict:
   try:
-    deleted_str = await student_service.delete_a_student_ser(student_uid,session)
-    return deleted_str
+    message = await student_service.delete_a_student_ser(student_uid,session)
+    return message
   except Exception as e:
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))  
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     
 

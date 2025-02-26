@@ -3,6 +3,8 @@ from src.student.models import StudentSqlModel
 from sqlmodel import select,desc
 from sqlalchemy.exc import SQLAlchemyError
 from src.student.schemas import StudentCreateModel
+from fastapi.exceptions import HTTPException
+from fastapi import status
 
 class StudentServices:
   try:
@@ -25,10 +27,21 @@ class StudentServices:
     # Raise a generic error message for the user
     raise Exception("An error occurred while fetching students. Please try again later.")
   
-
+  async def get_student_by_email(self,email:str,session:AsyncSession):
+    try:
+      statement = select(StudentSqlModel).where(StudentSqlModel.email==email)
+      result = await session.execute(statement)
+      user = result.scalars().first()
+      return True if user is not None else False
+    except SQLAlchemyError as e:
+    # Raise a generic error message for the user
+     raise Exception("An error occurred while fetching students. Please try again later.")
 
   async def create_a_student_ser(self,student_data:StudentCreateModel,session:AsyncSession):
     try:
+      if await self.get_student_by_email(student_data.email,session):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail=f"User Already present with Email: {student_data.email}")
+      
       student_data_dict = student_data.model_dump()
       new_student =  StudentSqlModel(**student_data_dict)
       
@@ -38,7 +51,7 @@ class StudentServices:
       return new_student
     except SQLAlchemyError as e:
       # Raise a generic error message for the user
-      raise Exception("An error occurred while fetching students. Please try again later.")
+      raise Exception("An error occurred while creating students. Please try again later.")
    
 
 
@@ -46,7 +59,9 @@ class StudentServices:
    try:
       statement = select(StudentSqlModel).where(StudentSqlModel.uid==student_uid)
       result = await session.execute(statement)
-      return result.scalars().first()
+      user = result.scalars().first()
+      print("User",user)
+      return user
    except SQLAlchemyError as e:
     # Raise a generic error message for the user
     raise Exception("An error occurred while fetching students. Please try again later.")
